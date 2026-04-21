@@ -148,7 +148,7 @@ export default function AdminProducts() {
                       <select 
                         className="w-full px-4 py-2 border rounded-lg"
                         value={newProduct.category}
-                        onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
+                        onChange={(e) => setNewProduct({...newProduct, category: e.target.value as any})}
                       >
                         <option value="goggles">Sunglasses</option>
                         <option value="specs">Eyeglasses</option>
@@ -386,7 +386,7 @@ export default function AdminProducts() {
                       <select 
                         className="w-full px-4 py-2 border rounded-lg"
                         value={editProduct.category}
-                        onChange={(e) => setEditProduct({...editProduct, category: e.target.value})}
+                        onChange={(e) => setEditProduct({...editProduct, category: e.target.value as any})}
                       >
                         <option value="goggles">Sunglasses</option>
                         <option value="specs">Eyeglasses</option>

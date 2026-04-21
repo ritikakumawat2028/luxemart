@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { toast } from 'sonner';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
+
 // Product Types
 export interface Product {
   _id?: string;
@@ -23,6 +26,7 @@ export interface Product {
   isFeatured?: boolean;
   newArrival?: boolean;
   discount?: number;
+  isNew?: boolean;
 }
 
 // Cart Types
@@ -90,13 +94,14 @@ interface WishlistState {
 export interface Order {
   _id?: string;
   id: string;
-  userId: string;
+  userId: string | any;
   items: CartItem[];
   totalAmount: number;
   shippingAddress: Address;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentStatus: 'pending' | 'completed' | 'failed';
   paymentMethod: string;
+  trackingNumber?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -201,7 +206,7 @@ export const useProductStore = create<ProductState>((set) => ({
   fetchProducts: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/products');
+      const response = await fetch(API_URL + '/api/products');
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
       // Map _id to id for consistency if needed, but we'll try to support both
@@ -222,7 +227,7 @@ export const useAuthStore = create<AuthState>()(
       isAdmin: false,
       login: async (email, password) => {
         try {
-          const res = await fetch('/api/users/login', {
+          const res = await fetch(API_URL + '/api/users/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -244,7 +249,7 @@ export const useAuthStore = create<AuthState>()(
       },
       register: async (name, email, password) => {
         try {
-          const res = await fetch('/api/users/register', {
+          const res = await fetch(API_URL + '/api/users/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, password })
@@ -291,7 +296,7 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
       return;
     }
     try {
-      const res = await fetch(`/api/users/wishlist/${productId}`, {
+      const res = await fetch(`${API_URL}/api/users/wishlist/${productId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -309,7 +314,7 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
     const user = useAuthStore.getState().user;
     if (!user) return;
     try {
-      const res = await fetch(`/api/users/wishlist/${user.id}`);
+      const res = await fetch(`${API_URL}/api/users/wishlist/${user.id}`);
       if (res.ok) {
         const data = await res.json();
         set({ wishlist: data.map((p: any) => ({ ...p, id: p._id })) });
@@ -326,7 +331,7 @@ export const useOrderStore = create<OrderState>((set) => ({
   orders: [],
   placeOrder: async (orderData) => {
     try {
-      const res = await fetch('/api/orders', {
+      const res = await fetch(API_URL + '/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
@@ -344,7 +349,7 @@ export const useOrderStore = create<OrderState>((set) => ({
   },
   fetchUserOrders: async (userId) => {
     try {
-      const res = await fetch(`/api/orders/user/${userId}`);
+      const res = await fetch(`${API_URL}/api/orders/user/${userId}`);
       if (res.ok) {
         const data = await res.json();
         set({ orders: data.map((o: any) => ({ ...o, id: o._id })) });
@@ -360,7 +365,7 @@ export const useAdminStore = create<AdminState>((set) => ({
   allOrders: [],
   fetchUsers: async () => {
     try {
-      const res = await fetch('/api/users');
+      const res = await fetch(API_URL + '/api/users');
       if (res.ok) {
         const data = await res.json();
         set({ users: data.map((u: any) => ({ ...u, id: u._id })) });
@@ -369,7 +374,7 @@ export const useAdminStore = create<AdminState>((set) => ({
   },
   fetchAllOrders: async () => {
     try {
-      const res = await fetch('/api/orders');
+      const res = await fetch(API_URL + '/api/orders');
       if (res.ok) {
         const data = await res.json();
         set({ allOrders: data.map((o: any) => ({ ...o, id: o._id })) });
@@ -378,7 +383,7 @@ export const useAdminStore = create<AdminState>((set) => ({
   },
   addProduct: async (product) => {
     try {
-      const res = await fetch('/api/products', {
+      const res = await fetch(API_URL + '/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product)
@@ -392,7 +397,7 @@ export const useAdminStore = create<AdminState>((set) => ({
   },
   updateProduct: async (id, updates) => {
     try {
-      const res = await fetch(`/api/products/${id}`, {
+      const res = await fetch(`${API_URL}/api/products/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -406,7 +411,7 @@ export const useAdminStore = create<AdminState>((set) => ({
   },
   deleteProduct: async (id) => {
     try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/api/products/${id}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('Product deleted');
       }
@@ -416,7 +421,7 @@ export const useAdminStore = create<AdminState>((set) => ({
   },
   updateUserRole: async (userId, role) => {
     try {
-      const res = await fetch(`/api/users/${userId}/role`, {
+      const res = await fetch(`${API_URL}/api/users/${userId}/role`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role })
@@ -430,7 +435,7 @@ export const useAdminStore = create<AdminState>((set) => ({
   },
   deleteUser: async (userId) => {
     try {
-      const res = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/api/users/${userId}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('User deleted');
       }
@@ -440,7 +445,7 @@ export const useAdminStore = create<AdminState>((set) => ({
   },
   updateOrderStatus: async (orderId, status) => {
     try {
-      const res = await fetch(`/api/orders/${orderId}`, {
+      const res = await fetch(`${API_URL}/api/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })

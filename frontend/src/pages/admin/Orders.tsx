@@ -26,7 +26,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { toast } from 'sonner';
 
 const statusOptions = [
   { value: 'all', label: 'All Status' },
@@ -50,7 +49,7 @@ export default function AdminOrders() {
   const filteredOrders = orders.filter((order) => {
     const matchesSearch = 
       String(order.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      String((typeof order.userId === 'object' ? order.userId?.name || order.userId?._id : order.userId) || '').toLowerCase().includes(searchQuery.toLowerCase());
+      String((typeof order.userId === 'object' ? (order.userId as any)?.name || (order.userId as any)?._id : order.userId) || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
@@ -158,10 +157,10 @@ export default function AdminOrders() {
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-[#c9a96e]/10 rounded-full flex items-center justify-center">
                               <span className="text-sm font-medium text-[#c9a96e]">
-                                {String((typeof order.userId === 'object' ? order.userId?.name || order.userId?._id : order.userId) || '?').charAt(0).toUpperCase()}
+                                {String((typeof order.userId === 'object' ? (order.userId as any)?.name || (order.userId as any)?._id : order.userId) || '?').charAt(0).toUpperCase()}
                               </span>
                             </div>
-                            <span>User #{typeof order.userId === 'object' ? (order.userId?.name || order.userId?._id || 'Unknown') : (order.userId || 'Unknown')}</span>
+                            <span>User #{typeof order.userId === 'object' ? ((order.userId as any)?.name || (order.userId as any)?._id || 'Unknown') : (order.userId || 'Unknown')}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-[#666]">

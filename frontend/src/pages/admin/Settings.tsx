@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useAuthStore } from '@/store/store';
-import { Save, Store, Bell, Shield, Palette } from 'lucide-react';
+import { Save, Store, Bell, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminSettings() {

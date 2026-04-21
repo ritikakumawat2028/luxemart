@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-const statusConfig = {
+const statusConfig: Record<string, any> = {
   pending: { 
     label: 'Pending', 
     color: 'bg-gray-100 text-gray-600',

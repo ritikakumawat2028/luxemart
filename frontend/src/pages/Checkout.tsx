@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CreditCard, Truck, Check, ChevronRight, Lock, Download, Printer, Package } from 'lucide-react';
+import { CreditCard, Truck, Check, ChevronRight, Lock, Download, Package } from 'lucide-react';
 import { useCartStore, useAuthStore, useOrderStore } from '@/store/store';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';

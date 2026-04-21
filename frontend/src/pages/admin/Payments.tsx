@@ -1,5 +1,5 @@
 import AdminLayout from '@/components/admin/AdminLayout';
-import { CreditCard, TrendingUp, DollarSign, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { CreditCard, DollarSign, Clock, XCircle } from 'lucide-react';
 import { useAdminStore } from '@/store/store';
 
 const methodLabels: Record<string, string> = { card: 'Credit Card', paypal: 'PayPal', bank: 'Bank Transfer' };

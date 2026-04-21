@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Trash2 } from 'lucide-react';
 import { useWishlistStore, useCartStore } from '@/store/store';
-import { Button } from '@/components/ui/button';
 import ProductCard from '@/components/product/ProductCard';
 
 export default function Wishlist() {
