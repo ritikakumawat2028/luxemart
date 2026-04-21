@@ -1,0 +1,46 @@
+[
+  {
+    "id": "1",
+    "email": "admin@luxemart.com",
+    "password": "password",
+    "name": "Admin User",
+    "role": "admin",
+    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop",
+    "createdAt": "2024-01-01",
+    "phone": "+1 (555) 000-0000",
+    "addresses": [
+      {
+        "id": "1",
+        "name": "Office",
+        "street": "123 Admin Street",
+        "city": "New York",
+        "state": "NY",
+        "zipCode": "10001",
+        "country": "USA",
+        "isDefault": true
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "email": "user@example.com",
+    "password": "password",
+    "name": "John Doe",
+    "role": "user",
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop",
+    "createdAt": "2024-01-15",
+    "phone": "+1 (555) 123-4567",
+    "addresses": [
+      {
+        "id": "2",
+        "name": "Home",
+        "street": "456 User Avenue",
+        "city": "Los Angeles",
+        "state": "CA",
+        "zipCode": "90001",
+        "country": "USA",
+        "isDefault": true
+      }
+    ]
+  }
+]

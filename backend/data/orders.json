@@ -1,0 +1,23 @@
+[
+  {
+    "id": "ORD-001",
+    "userId": "2",
+    "items": [],
+    "totalAmount": 238.00,
+    "shippingAddress": {
+      "id": "2",
+      "name": "Home",
+      "street": "456 User Avenue",
+      "city": "Los Angeles",
+      "state": "CA",
+      "zipCode": "90001",
+      "country": "USA",
+      "isDefault": true
+    },
+    "status": "delivered",
+    "paymentStatus": "completed",
+    "createdAt": "2024-01-20T10:30:00Z",
+    "updatedAt": "2024-01-22T14:20:00Z",
+    "trackingNumber": "TRK123456789"
+  }
+]
