@@ -33,7 +33,7 @@ import {
 import { toast } from 'sonner';
 
 export default function AdminProducts() {
-  const { products, fetchProducts, isLoading } = useProductStore();
+  const { products, fetchProducts } = useProductStore();
   const { addProduct, deleteProduct, updateProduct } = useAdminStore();
 
   // Load products on mount
@@ -54,7 +54,6 @@ export default function AdminProducts() {
   const [addImagePreview, setAddImagePreview] = useState<string | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [addDragActive, setAddDragActive] = useState(false);
-  const [editDragActive, setEditDragActive] = useState(false);
 
   const [newProduct, setNewProduct] = useState({
     name: '',
