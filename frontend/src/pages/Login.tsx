@@ -29,14 +29,15 @@ export default function Login() {
       
       if (success) {
         toast.success('Welcome back!');
-        const isAdmin = email === 'admin@luxemart.com'; // Fallback check or use store state
+        // Check admin status from the store after login completes
+        const { isAdmin } = useAuthStore.getState();
         if (isAdmin) {
           navigate('/admin');
         } else {
           navigate('/');
         }
       } else {
-        toast.error('Invalid email or password. Try admin@luxemart.com / password');
+        toast.error('Invalid email or password');
       }
     } catch (error) {
       toast.error('Something went wrong. Please try again.');
@@ -139,13 +140,16 @@ export default function Login() {
               </form>
 
               {/* Demo Credentials */}
-              <div className="mt-6 p-4 bg-[#f8f8f8] rounded-lg">
-                <p className="text-sm text-[#666] text-center">
-                  <strong>Demo:</strong> admin@luxemart.com / password
-                </p>
-                <p className="text-sm text-[#666] text-center mt-1">
-                  <strong>User:</strong> user@example.com / password
-                </p>
+              <div className="mt-6 p-4 bg-[#f8f8f8] rounded-lg space-y-2">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center mb-2">Demo Credentials</p>
+                <div className="flex items-center justify-between text-sm text-[#666] bg-white rounded-md px-3 py-2">
+                  <span><strong>Admin:</strong> admin@luxemart.com</span>
+                  <span className="text-gray-400">admin123</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-[#666] bg-white rounded-md px-3 py-2">
+                  <span><strong>User:</strong> user@luxemart.com</span>
+                  <span className="text-gray-400">user123</span>
+                </div>
               </div>
 
               {/* Divider */}

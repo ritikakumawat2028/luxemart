@@ -1,154 +1,125 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Truck } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+const slides = [
+  {
+    id: 1,
+    image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&q=80&w=1920',
+    title: 'Square Frames',
+    subtitle: 'Made to Match Your Every Mood and Moment',
+    buttonText: 'Shop Now',
+    align: 'items-start text-left pl-[10%]',
+    bgColor: 'bg-[#f0eade]'
+  },
+  {
+    id: 2,
+    image: 'https://images.unsplash.com/photo-1577803645773-f96470509666?auto=format&fit=crop&q=80&w=1920',
+    title: 'New Year,\nNew Vision',
+    subtitle: 'Prescription glasses from $8,\nwith an extra 10% off blue light protection.',
+    buttonText: 'Upgrade Your Vision',
+    align: 'items-start text-left pl-[10%]',
+    bgColor: 'bg-[#eef2f6]'
+  },
+  {
+    id: 3,
+    image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?auto=format&fit=crop&q=80&w=1920',
+    title: 'Modern Elegance',
+    subtitle: 'Discover our latest collection of premium lightweight frames.',
+    buttonText: 'Explore Collection',
+    align: 'items-center text-center',
+    bgColor: 'bg-[#ffffff]'
+  }
+];
+
 export default function Hero() {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLDivElement>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
+  // Auto-play functionality
   useEffect(() => {
-    const handleScroll = () => {
-      if (!heroRef.current || !contentRef.current || !imageRef.current) return;
-      
-      const scrollY = window.scrollY;
-      const heroHeight = heroRef.current.offsetHeight;
-      const progress = Math.min(scrollY / heroHeight, 1);
-
-      // Parallax effect for image
-      imageRef.current.style.transform = `translateY(${scrollY * 0.3}px) scale(${1 + progress * 0.1})`;
-      
-      // Fade out content
-      contentRef.current.style.opacity = `${1 - progress}`;
-      contentRef.current.style.transform = `translateY(${-scrollY * 0.2}px)`;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+    }, 5000);
+    return () => clearInterval(timer);
   }, []);
 
-  // Entrance animation
-  useEffect(() => {
-    const content = contentRef.current;
-    if (!content) return;
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+  };
 
-    const elements = content.querySelectorAll('.animate-item');
-    elements.forEach((el, index) => {
-      const element = el as HTMLElement;
-      element.style.opacity = '0';
-      element.style.transform = 'translateY(30px)';
-      
-      setTimeout(() => {
-        element.style.transition = 'all 0.8s var(--ease-expo-out)';
-        element.style.opacity = '1';
-        element.style.transform = 'translateY(0)';
-      }, 200 + index * 150);
-    });
-  }, []);
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  };
 
   return (
-    <section 
-      ref={heroRef}
-      className="relative min-h-screen overflow-hidden bg-[#f8f8f8]"
-    >
-      {/* Background Image */}
+    <section className="relative w-full h-[100vh] min-h-[600px] overflow-hidden bg-gray-100">
+      
+      {/* Slider Container */}
       <div 
-        ref={imageRef}
-        className="absolute inset-0 w-full h-full"
-        style={{ willChange: 'transform' }}
+        className="flex w-full h-full transition-transform duration-1000 ease-in-out"
+        style={{ transform: `translateX(-${currentSlide * 100}%)` }}
       >
-        <img
-          src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&h=1080&fit=crop"
-          alt="Luxury lifestyle products"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 to-transparent" />
-      </div>
-
-      {/* Diagonal Accent */}
-      <div 
-        className="absolute top-0 right-0 w-1/2 h-full opacity-10"
-        style={{
-          background: 'linear-gradient(135deg, transparent 50%, var(--gold) 50%)',
-        }}
-      />
-
-      {/* Content */}
-      <div 
-        ref={contentRef}
-        className="relative z-10 min-h-screen flex items-center section-padding"
-        style={{ willChange: 'transform, opacity' }}
-      >
-        <div className="container-custom">
-          <div className="max-w-2xl">
-            {/* Eyebrow */}
-            <div className="animate-item mb-4">
-              <span className="inline-block text-sm font-semibold tracking-widest text-[#c9a96e] uppercase">
-                New Collection 2024
-              </span>
+        {slides.map((slide) => (
+          <div 
+            key={slide.id} 
+            className={`min-w-full h-full relative ${slide.bgColor} flex ${slide.align} pt-24 pb-16`}
+          >
+            {/* Background Image with slight opacity/blend for text readability if needed */}
+            <div className="absolute inset-0 w-full h-full z-0">
+              <img 
+                src={slide.image} 
+                alt={slide.title} 
+                className="w-full h-full object-cover opacity-90 mix-blend-multiply"
+              />
             </div>
 
-            {/* Headline */}
-            <h1 className="animate-item text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-[#1a1a1a] leading-tight mb-6">
-              Elevate Your{' '}
-              <span className="text-gradient">Style</span>
-            </h1>
-
-            {/* Subheadline */}
-            <p className="animate-item text-lg md:text-xl text-[#666] leading-relaxed mb-8 max-w-xl">
-              Discover premium eyewear, fragrances, and accessories curated for the modern connoisseur. Quality meets elegance in every piece.
-            </p>
-
-            {/* CTAs */}
-            <div className="animate-item flex flex-wrap gap-4 mb-8">
-              <Link to="/shop">
-                <Button className="btn-primary text-lg px-8 py-4">
-                  Shop Now
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-              <Link to="/shop">
-                <Button className="btn-secondary text-lg px-8 py-4">
-                  Explore Collections
-                </Button>
-              </Link>
-            </div>
-
-            {/* Trust Badge */}
-            <div className="animate-item flex items-center gap-3 text-[#666]">
-              <div className="w-10 h-10 bg-[#c9a96e]/10 rounded-full flex items-center justify-center">
-                <Truck className="w-5 h-5 text-[#c9a96e]" />
-              </div>
-              <span className="text-sm">
-                Free Shipping on Orders Over{' '}
-                <span className="font-semibold text-[#1a1a1a]">₹10,000</span>
-              </span>
-            </div>
-
-            {/* Stats */}
-            <div className="animate-item flex gap-8 mt-12 pt-8 border-t border-[#e0e0e0]">
+            {/* Slide Content */}
+            <div className="relative z-10 flex flex-col justify-center h-full max-w-2xl px-6 lg:px-0">
+              <h1 className="text-5xl md:text-6xl lg:text-[5.5rem] font-bold text-gray-900 leading-[1.1] mb-6 whitespace-pre-line tracking-tight drop-shadow-sm">
+                {slide.title}
+              </h1>
+              <p className="text-lg md:text-xl text-gray-800 mb-10 whitespace-pre-line font-medium drop-shadow-sm max-w-xl">
+                {slide.subtitle}
+              </p>
               <div>
-                <p className="text-3xl font-serif font-bold text-[#1a1a1a]">500+</p>
-                <p className="text-sm text-[#666]">Products</p>
-              </div>
-              <div>
-                <p className="text-3xl font-serif font-bold text-[#1a1a1a]">10K+</p>
-                <p className="text-sm text-[#666]">Happy Customers</p>
-              </div>
-              <div>
-                <p className="text-3xl font-serif font-bold text-[#1a1a1a]">4.9</p>
-                <p className="text-sm text-[#666]">Average Rating</p>
+                <Link to="/shop">
+                  <Button className="bg-[#2a2a2a] text-white hover:bg-black px-8 py-6 rounded-full text-sm font-bold tracking-wide uppercase transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
+                    {slide.buttonText}
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
 
-      {/* Floating Decorative Elements */}
-      <div className="absolute bottom-20 right-20 w-32 h-32 border border-[#c9a96e]/20 rounded-full animate-float hidden lg:block" />
-      <div className="absolute top-40 right-40 w-4 h-4 bg-[#c9a96e]/30 rounded-full animate-pulse-slow hidden lg:block" />
-      <div className="absolute bottom-40 right-60 w-2 h-2 bg-[#c9a96e]/50 rounded-full animate-float hidden lg:block" style={{ animationDelay: '2s' }} />
+      {/* Navigation Arrows */}
+      <button 
+        onClick={prevSlide}
+        className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/50 hover:bg-white backdrop-blur-md rounded-full flex items-center justify-center text-gray-800 shadow-lg transition-all z-20"
+      >
+        <ChevronLeft className="w-6 h-6" />
+      </button>
+      <button 
+        onClick={nextSlide}
+        className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/50 hover:bg-white backdrop-blur-md rounded-full flex items-center justify-center text-gray-800 shadow-lg transition-all z-20"
+      >
+        <ChevronRight className="w-6 h-6" />
+      </button>
+
+      {/* Pagination Dots */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-20">
+        {slides.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentSlide(index)}
+            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              currentSlide === index ? 'bg-gray-900 scale-125' : 'bg-gray-400 hover:bg-gray-600'
+            }`}
+          />
+        ))}
+      </div>
     </section>
   );
 }
