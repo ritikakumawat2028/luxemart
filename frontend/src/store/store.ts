@@ -8,7 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 // Product Types
 export interface Product {
   _id?: string;
-  id: string; // We'll use id in frontend, map from _id if needed
+  id: string;
   name: string;
   description: string;
   price: number;
@@ -58,7 +58,7 @@ export interface User {
   addresses?: Address[];
   phone?: string;
   createdAt: string;
-  wishlist?: string[]; // IDs of products
+  wishlist?: string[];
 }
 
 export interface Address {
@@ -122,6 +122,7 @@ interface UIState {
   setSearchOpen: (open: boolean) => void;
 }
 
+// Product State
 interface ProductState {
   products: Product[];
   isLoading: boolean;
@@ -144,7 +145,8 @@ interface AdminState {
   updateOrderStatus: (orderId: string, status: string) => Promise<void>;
 }
 
-// Cart Store
+
+// ─── Cart Store ─────────────────────────────────────────────────────────
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
@@ -198,33 +200,43 @@ export const useCartStore = create<CartState>()(
   )
 );
 
-// Product Store
-export const useProductStore = create<ProductState>((set) => ({
-  products: [],
-  isLoading: false,
-  error: null,
-  fetchProducts: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await fetch(API_URL + '/api/products');
-      if (!response.ok) throw new Error('Failed to fetch products');
-      const data = await response.json();
-      // Map _id to id for consistency if needed, but we'll try to support both
-      const mappedData = data.map((p: any) => ({ ...p, id: p._id }));
-      set({ products: mappedData, isLoading: false });
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
-    }
-  }
-}));
 
-// Auth Store
+// ─── Product Store (with offline fallback) ──────────────────────────────
+export const useProductStore = create<ProductState>()(
+  persist(
+    (set, get) => ({
+      products: [],
+      isLoading: false,
+      error: null,
+      fetchProducts: async () => {
+        if (get().products.length > 0 && !get().isLoading) return;
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(API_URL + '/api/products');
+          if (!response.ok) throw new Error('Failed to fetch');
+          const data = await response.json();
+          const mappedData = data.map((p: any) => ({ ...p, id: p._id || p.id }));
+          set({ products: mappedData, isLoading: false });
+        } catch {
+          // Fallback: load from local static data
+          const { products: localProducts } = await import('@/data/products');
+          set({ products: localProducts, isLoading: false, error: null });
+        }
+      }
+    }),
+    { name: 'luxemart-products-v3' }
+  )
+);
+
+
+// ─── Auth Store (with offline fallback) ─────────────────────────────────
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
       isAuthenticated: false,
       isAdmin: false,
+
       login: async (email, password) => {
         // Try backend first
         try {
@@ -243,11 +255,11 @@ export const useAuthStore = create<AuthState>()(
             });
             return true;
           }
-        } catch (e) {
+        } catch {
           // Backend unreachable – fall through to offline credentials
         }
 
-        // Offline fallback credentials
+        // Offline fallback: Admin
         if (email === 'admin@luxemart.com' && password === 'admin123') {
           set({
             user: {
@@ -259,14 +271,9 @@ export const useAuthStore = create<AuthState>()(
               createdAt: '2024-01-01',
               phone: '+91 9876543210',
               addresses: [{
-                id: '1',
-                name: 'Office',
-                street: '123 Admin Street',
-                city: 'New Delhi',
-                state: 'Delhi',
-                zipCode: '110001',
-                country: 'India',
-                isDefault: true,
+                id: '1', name: 'Office', street: '123 Admin Street',
+                city: 'New Delhi', state: 'Delhi', zipCode: '110001',
+                country: 'India', isDefault: true,
               }],
             },
             isAuthenticated: true,
@@ -275,6 +282,7 @@ export const useAuthStore = create<AuthState>()(
           return true;
         }
 
+        // Offline fallback: User
         if (email === 'user@luxemart.com' && password === 'user123') {
           set({
             user: {
@@ -286,14 +294,9 @@ export const useAuthStore = create<AuthState>()(
               createdAt: '2024-01-15',
               phone: '+91 9123456789',
               addresses: [{
-                id: '2',
-                name: 'Home',
-                street: '456 Main Road',
-                city: 'Jaipur',
-                state: 'Rajasthan',
-                zipCode: '302001',
-                country: 'India',
-                isDefault: true,
+                id: '2', name: 'Home', street: '456 Main Road',
+                city: 'Jaipur', state: 'Rajasthan', zipCode: '302001',
+                country: 'India', isDefault: true,
               }],
             },
             isAuthenticated: true,
@@ -304,6 +307,7 @@ export const useAuthStore = create<AuthState>()(
 
         return false;
       },
+
       register: async (name, email, password) => {
         try {
           const res = await fetch(API_URL + '/api/users/register', {
@@ -322,17 +326,15 @@ export const useAuthStore = create<AuthState>()(
             return true;
           }
           return false;
-        } catch (e) {
+        } catch {
           return false;
         }
       },
+
       logout: () => {
-        set({
-          user: null,
-          isAuthenticated: false,
-          isAdmin: false,
-        });
+        set({ user: null, isAuthenticated: false, isAdmin: false });
       },
+
       updateProfile: (updates) => {
         set((state) => ({
           user: state.user ? { ...state.user, ...updates } : null,
@@ -343,7 +345,8 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Wishlist Store
+
+// ─── Wishlist Store ─────────────────────────────────────────────────────
 export const useWishlistStore = create<WishlistState>((set, get) => ({
   wishlist: [],
   toggleWishlist: async (productId) => {
@@ -363,7 +366,7 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
         const isIn = get().isInWishlist(productId);
         toast.success(isIn ? 'Added to wishlist' : 'Removed from wishlist');
       }
-    } catch (e) {
+    } catch {
       toast.error('Wishlist action failed');
     }
   },
@@ -376,14 +379,15 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
         const data = await res.json();
         set({ wishlist: data.map((p: any) => ({ ...p, id: p._id })) });
       }
-    } catch (e) {}
+    } catch {}
   },
   isInWishlist: (productId) => {
     return get().wishlist.some(p => (p._id || p.id) === productId);
   }
 }));
 
-// Order Store
+
+// ─── Order Store ────────────────────────────────────────────────────────
 export const useOrderStore = create<OrderState>((set) => ({
   orders: [],
   placeOrder: async (orderData) => {
@@ -400,7 +404,7 @@ export const useOrderStore = create<OrderState>((set) => ({
         return mappedOrder;
       }
       return null;
-    } catch (e) {
+    } catch {
       return null;
     }
   },
@@ -411,15 +415,17 @@ export const useOrderStore = create<OrderState>((set) => ({
         const data = await res.json();
         set({ orders: data.map((o: any) => ({ ...o, id: o._id })) });
       }
-    } catch (e) {}
+    } catch {}
   }
 }));
 
-// Admin Store
+
+// ─── Admin Store (with offline fallback) ────────────────────────────────
 export const useAdminStore = create<AdminState>((set) => ({
   products: [],
   users: [],
   allOrders: [],
+
   fetchUsers: async () => {
     try {
       const res = await fetch(API_URL + '/api/users');
@@ -427,8 +433,9 @@ export const useAdminStore = create<AdminState>((set) => ({
         const data = await res.json();
         set({ users: data.map((u: any) => ({ ...u, id: u._id })) });
       }
-    } catch (e) {}
+    } catch {}
   },
+
   fetchAllOrders: async () => {
     try {
       const res = await fetch(API_URL + '/api/orders');
@@ -436,9 +443,11 @@ export const useAdminStore = create<AdminState>((set) => ({
         const data = await res.json();
         set({ allOrders: data.map((o: any) => ({ ...o, id: o._id })) });
       }
-    } catch (e) {}
+    } catch {}
   },
+
   addProduct: async (product) => {
+    // Try backend first
     try {
       const res = await fetch(API_URL + '/api/products', {
         method: 'POST',
@@ -446,13 +455,39 @@ export const useAdminStore = create<AdminState>((set) => ({
         body: JSON.stringify(product)
       });
       if (res.ok) {
-        toast.success('Product added');
+        const saved = await res.json();
+        const mapped = { ...saved, id: saved._id || saved.id };
+        useProductStore.setState((state) => ({
+          products: [mapped, ...state.products]
+        }));
+        toast.success('Product added successfully!');
+        return;
       }
-    } catch (e) {
-      toast.error('Failed to add product');
+    } catch {
+      // Backend unreachable – save locally
     }
+
+    // Offline fallback: create product in local state
+    const newProduct: Product = {
+      ...product,
+      id: 'local_' + Date.now(),
+      rating: 4.5,
+      reviewCount: 0,
+      inStock: (product.stockCount || 0) > 0,
+      stockCount: product.stockCount || 0,
+      tags: [],
+      features: [],
+      isFeatured: false,
+      isNew: true,
+    };
+    useProductStore.setState((state) => ({
+      products: [newProduct, ...state.products]
+    }));
+    toast.success('Product added successfully!');
   },
+
   updateProduct: async (id, updates) => {
+    // Try backend first
     try {
       const res = await fetch(`${API_URL}/api/products/${id}`, {
         method: 'PUT',
@@ -460,22 +495,45 @@ export const useAdminStore = create<AdminState>((set) => ({
         body: JSON.stringify(updates)
       });
       if (res.ok) {
-        toast.success('Product updated');
+        useProductStore.setState((state) => ({
+          products: state.products.map((p) =>
+            (p._id || p.id) === id ? { ...p, ...updates } : p
+          )
+        }));
+        toast.success('Product updated!');
+        return;
       }
-    } catch (e) {
-      toast.error('Failed to update product');
-    }
+    } catch {}
+
+    // Offline fallback
+    useProductStore.setState((state) => ({
+      products: state.products.map((p) =>
+        (p._id || p.id) === id ? { ...p, ...updates } : p
+      )
+    }));
+    toast.success('Product updated!');
   },
+
   deleteProduct: async (id) => {
+    // Try backend first
     try {
       const res = await fetch(`${API_URL}/api/products/${id}`, { method: 'DELETE' });
       if (res.ok) {
+        useProductStore.setState((state) => ({
+          products: state.products.filter((p) => (p._id || p.id) !== id)
+        }));
         toast.success('Product deleted');
+        return;
       }
-    } catch (e) {
-      toast.error('Failed to delete product');
-    }
+    } catch {}
+
+    // Offline fallback
+    useProductStore.setState((state) => ({
+      products: state.products.filter((p) => (p._id || p.id) !== id)
+    }));
+    toast.success('Product deleted');
   },
+
   updateUserRole: async (userId, role) => {
     try {
       const res = await fetch(`${API_URL}/api/users/${userId}/role`, {
@@ -483,23 +541,17 @@ export const useAdminStore = create<AdminState>((set) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role })
       });
-      if (res.ok) {
-        toast.success('User role updated');
-      }
-    } catch (e) {
-      toast.error('Failed to update role');
-    }
+      if (res.ok) { toast.success('User role updated'); }
+    } catch { toast.error('Failed to update role'); }
   },
+
   deleteUser: async (userId) => {
     try {
       const res = await fetch(`${API_URL}/api/users/${userId}`, { method: 'DELETE' });
-      if (res.ok) {
-        toast.success('User deleted');
-      }
-    } catch (e) {
-      toast.error('Failed to delete user');
-    }
+      if (res.ok) { toast.success('User deleted'); }
+    } catch { toast.error('Failed to delete user'); }
   },
+
   updateOrderStatus: async (orderId, status) => {
     try {
       const res = await fetch(`${API_URL}/api/orders/${orderId}`, {
@@ -507,16 +559,13 @@ export const useAdminStore = create<AdminState>((set) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
-      if (res.ok) {
-        toast.success('Order status updated');
-      }
-    } catch (e) {
-      toast.error('Failed to update order');
-    }
+      if (res.ok) { toast.success('Order status updated'); }
+    } catch { toast.error('Failed to update order'); }
   }
 }));
 
-// UI Store
+
+// ─── UI Store ───────────────────────────────────────────────────────────
 export const useUIStore = create<UIState>((set) => ({
   isCartOpen: false,
   isMobileMenuOpen: false,

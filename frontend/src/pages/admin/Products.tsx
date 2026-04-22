@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 // Products management page
 import { 
   Plus, 
@@ -9,7 +9,10 @@ import {
   Trash2, 
   Eye,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Upload,
+  ImagePlus,
+  X
 } from 'lucide-react';
 import { useProductStore, useAdminStore } from '@/store/store';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -30,20 +33,28 @@ import {
 import { toast } from 'sonner';
 
 export default function AdminProducts() {
-  const { products: storeProducts, fetchProducts } = useProductStore();
+  const { products, fetchProducts, isLoading } = useProductStore();
   const { addProduct, deleteProduct, updateProduct } = useAdminStore();
-  const [products, setProducts] = useState(storeProducts);
 
-  // Sync state if store updates
+  // Load products on mount
   useEffect(() => {
-    setProducts(storeProducts);
-  }, [storeProducts]);
+    // Force refetch if empty
+    if (products.length === 0) {
+      fetchProducts();
+    }
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [viewProduct, setViewProduct] = useState<typeof products[0] | null>(null);
   const [editProduct, setEditProduct] = useState<typeof products[0] | null>(null);
   const itemsPerPage = 10;
+  const addFileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+  const [addImagePreview, setAddImagePreview] = useState<string | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const [addDragActive, setAddDragActive] = useState(false);
+  const [editDragActive, setEditDragActive] = useState(false);
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -51,24 +62,68 @@ export default function AdminProducts() {
     price: 0,
     stockCount: 0,
     description: '',
-    image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&q=80'
+    image: ''
   });
+
+  // Convert file to base64 data URL for preview & storage
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleAddImageFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+    const dataUrl = await fileToDataUrl(file);
+    setAddImagePreview(dataUrl);
+    setNewProduct({ ...newProduct, image: dataUrl });
+  };
+
+  const handleEditImageFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+    const dataUrl = await fileToDataUrl(file);
+    setEditImagePreview(dataUrl);
+    if (editProduct) {
+      setEditProduct({ ...editProduct, image: dataUrl });
+    }
+  };
 
   const handleAddProduct = async () => {
     if (!newProduct.name || !newProduct.price) {
       toast.error('Please fill in required fields');
       return;
     }
+    if (!newProduct.image) {
+      toast.error('Please upload a product image');
+      return;
+    }
     await addProduct(newProduct);
-    fetchProducts();
     setNewProduct({
       name: '',
       category: 'goggles',
       price: 0,
       stockCount: 0,
       description: '',
-      image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&q=80'
+      image: ''
     });
+    setAddImagePreview(null);
   };
 
   // Filter products
@@ -89,7 +144,6 @@ export default function AdminProducts() {
   const handleDelete = async (productId: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
       await deleteProduct(productId);
-      fetchProducts(); // Refresh the list from backend
     }
   };
 
@@ -99,9 +153,8 @@ export default function AdminProducts() {
       return;
     }
     await updateProduct(editProduct.id, editProduct);
-    fetchProducts();
     setEditProduct(null);
-    toast.success('Product updated successfully');
+    setEditImagePreview(null);
   };
 
   const getStockStatus = (stockCount: number) => {
@@ -131,10 +184,73 @@ export default function AdminProducts() {
                 <DialogHeader>
                   <DialogTitle>Add New Product</DialogTitle>
                 </DialogHeader>
-                 <div className="space-y-4 py-4">
+                 <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1">
+                  {/* Image Upload Section */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Product Image <span className="text-red-400">*</span></label>
+                    
+                    {/* Preview */}
+                    {(addImagePreview || newProduct.image) ? (
+                      <div className="relative w-full h-48 rounded-xl overflow-hidden bg-gray-50 mb-3 border border-gray-200">
+                        <img src={addImagePreview || newProduct.image} alt="Preview" className="w-full h-full object-cover" />
+                        <button 
+                          onClick={() => { setAddImagePreview(null); setNewProduct({...newProduct, image: ''}); }}
+                          className="absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      /* Drag & Drop Zone */
+                      <div
+                        className={`relative w-full h-48 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${
+                          addDragActive ? 'border-[#c0996b] bg-[#c0996b]/5' : 'border-gray-300 bg-gray-50 hover:border-[#c0996b] hover:bg-[#fdf8f3]'
+                        }`}
+                        onClick={() => addFileInputRef.current?.click()}
+                        onDragOver={(e) => { e.preventDefault(); setAddDragActive(true); }}
+                        onDragLeave={() => setAddDragActive(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setAddDragActive(false);
+                          if (e.dataTransfer.files[0]) handleAddImageFile(e.dataTransfer.files[0]);
+                        }}
+                      >
+                        <ImagePlus className="w-10 h-10 text-gray-400 mb-3" />
+                        <p className="text-sm font-medium text-gray-600">Click to upload or drag & drop</p>
+                        <p className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP up to 5MB</p>
+                      </div>
+                    )}
+                    <input
+                      ref={addFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => { if (e.target.files?.[0]) handleAddImageFile(e.target.files[0]); }}
+                    />
+
+                    {/* OR URL Input */}
+                    <div className="mt-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex-1 h-px bg-gray-200" />
+                        <span className="text-xs text-gray-400 font-medium">OR paste image URL</span>
+                        <div className="flex-1 h-px bg-gray-200" />
+                      </div>
+                      <input 
+                        type="url" 
+                        className="w-full px-4 py-2 border rounded-lg text-sm" 
+                        placeholder="https://example.com/image.jpg" 
+                        value={addImagePreview ? '' : newProduct.image}
+                        onChange={(e) => {
+                          setAddImagePreview(null);
+                          setNewProduct({...newProduct, image: e.target.value});
+                        }}
+                      />
+                    </div>
+                  </div>
+
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Product Name</label>
+                      <label className="block text-sm font-medium mb-2">Product Name <span className="text-red-400">*</span></label>
                       <input 
                         type="text" 
                         className="w-full px-4 py-2 border rounded-lg" 
@@ -159,11 +275,11 @@ export default function AdminProducts() {
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Price</label>
+                      <label className="block text-sm font-medium mb-2">Price (₹) <span className="text-red-400">*</span></label>
                       <input 
                         type="number" 
                         className="w-full px-4 py-2 border rounded-lg" 
-                        placeholder="0.00" 
+                        placeholder="0" 
                         value={newProduct.price}
                         onChange={(e) => setNewProduct({...newProduct, price: parseFloat(e.target.value)})}
                       />
@@ -189,7 +305,8 @@ export default function AdminProducts() {
                       onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
                     ></textarea>
                   </div>
-                  <Button className="w-full btn-primary" onClick={handleAddProduct}>
+                  <Button className="w-full btn-primary flex items-center justify-center gap-2" onClick={handleAddProduct}>
+                    <Upload className="w-4 h-4" />
                     Add Product
                   </Button>
                 </div>
@@ -370,7 +487,48 @@ export default function AdminProducts() {
                 <DialogTitle>Edit Product</DialogTitle>
               </DialogHeader>
               {editProduct && (
-                <div className="space-y-4 py-4">
+                <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1">
+                  {/* Edit Image Upload Section */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Product Image</label>
+                    <div className="relative w-full h-48 rounded-xl overflow-hidden bg-gray-50 mb-3 border border-gray-200">
+                      <img src={editImagePreview || editProduct.image} alt="Preview" className="w-full h-full object-cover" />
+                      <button 
+                        onClick={() => editFileInputRef.current?.click()}
+                        className="absolute bottom-2 right-2 px-3 py-1.5 bg-black/60 hover:bg-black/80 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        Change Image
+                      </button>
+                    </div>
+                    <input
+                      ref={editFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => { if (e.target.files?.[0]) handleEditImageFile(e.target.files[0]); }}
+                    />
+
+                    {/* OR URL Input */}
+                    <div className="mt-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex-1 h-px bg-gray-200" />
+                        <span className="text-xs text-gray-400 font-medium">OR paste image URL</span>
+                        <div className="flex-1 h-px bg-gray-200" />
+                      </div>
+                      <input 
+                        type="url" 
+                        className="w-full px-4 py-2 border rounded-lg text-sm" 
+                        placeholder="https://example.com/image.jpg" 
+                        value={editImagePreview ? '' : editProduct.image}
+                        onChange={(e) => {
+                          setEditImagePreview(null);
+                          setEditProduct({...editProduct, image: e.target.value});
+                        }}
+                      />
+                    </div>
+                  </div>
+
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Product Name</label>
@@ -397,7 +555,7 @@ export default function AdminProducts() {
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Price</label>
+                      <label className="block text-sm font-medium mb-2">Price (₹)</label>
                       <input 
                         type="number" 
                         className="w-full px-4 py-2 border rounded-lg" 
@@ -425,7 +583,7 @@ export default function AdminProducts() {
                     ></textarea>
                   </div>
                   <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1" onClick={() => setEditProduct(null)}>
+                    <Button variant="outline" className="flex-1" onClick={() => { setEditProduct(null); setEditImagePreview(null); }}>
                       Cancel
                     </Button>
                     <Button className="flex-1 btn-primary" onClick={handleEditProduct}>
